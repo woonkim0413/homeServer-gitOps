@@ -15,7 +15,7 @@ spec:
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: self-Intruduction
+    namespace: self-introduction
 
   syncPolicy:
     automated:

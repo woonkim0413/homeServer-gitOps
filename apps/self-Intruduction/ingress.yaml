@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: self-introduction
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: intro.woonapp.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: self-introduction
+                port:
+                  number: 8080
