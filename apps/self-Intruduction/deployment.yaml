@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: self-introduction
-          image: ghcr.io/woonkim0413/self-intruduction:96012827cdbd1e58e2afe482178fa71a1540f443
+          image: ghcr.io/woonkim0413/self-introduction:99fe776ef7fc1e4dc4db586439b1ed129077e98c
           ports:
             - containerPort: 8080
