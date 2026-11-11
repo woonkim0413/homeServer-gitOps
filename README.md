@@ -47,7 +47,7 @@ Argo CD 서비스는 기본 ClusterIP로 유지합니다. 저장소가 비공개
 
 ### 2. Cloudflare Tunnel 사용
 
-Cloudflare Dashboard의 `Networking → Tunnels`에 이미 생성된 원격 관리 Tunnel `homeServer-tunnel`을 사용합니다. 이 Tunnel은 Connector 연결을 기다리는 상태입니다. Docker 안내에서 설치 명령 전체를 실행하지 말고, `--token` 뒤의 토큰만 Kubernetes Secret으로 저장합니다. 토큰을 Git 파일이나 셸 명령 인자에 직접 입력하지 않습니다.
+Cloudflare Dashboard의 `Networking → Tunnels`에 원격 관리 Tunnel `homeServer-tunnel`을 생성했습니다. Connector 두 개가 Kubernetes에서 실행 중이며 Cloudflare에 연결된 상태입니다. 토큰은 `cloudflare` 네임스페이스의 `cloudflared-token` Secret에만 저장하고 Git에는 넣지 않습니다. Docker 안내 명령은 로컬에서 실행하지 않습니다.
 
 ### 3. Traefik 등록 및 실제 내부 주소 확인
 
@@ -80,7 +80,7 @@ http://<service-name>.<namespace>.svc.cluster.local:<service-port>
 
 ### 5. 토큰을 Kubernetes Secret으로 저장
 
-홈서버 터미널에서 아래 명령을 실행하고, 프롬프트에 Tunnel 토큰을 붙여 넣습니다. 입력값은 화면에 표시되지 않고 Git에도 기록되지 않습니다.
+토큰을 교체해야 하면 홈서버 터미널에서 아래 명령을 실행하고, 프롬프트에 Tunnel 토큰을 붙여 넣습니다. 입력값은 화면에 표시되지 않고 Git에도 기록되지 않습니다. Secret을 갱신한 뒤 Connector Pod를 재시작합니다.
 
 ```bash
 kubectl create namespace cloudflare --dry-run=client -o yaml | kubectl apply -f -
@@ -88,8 +88,10 @@ read -rsp "Cloudflare Tunnel token: " TUNNEL_TOKEN
 echo
 printf '%s' "$TUNNEL_TOKEN" | kubectl create secret generic cloudflared-token \
   --namespace cloudflare \
-  --from-file=token=/dev/stdin
+  --from-file=token=/dev/stdin \
+  --dry-run=client -o yaml | kubectl apply -f -
 unset TUNNEL_TOKEN
+kubectl rollout restart deployment/cloudflared -n cloudflare
 ```
 
 Kubernetes Secret은 기본적으로 etcd에서 암호화되지 않을 수 있으므로 클러스터의 etcd 암호화와 RBAC 접근 제한을 확인합니다.
@@ -107,7 +109,7 @@ kubectl apply -f argocd/self-Intruduction.yaml
 
 ### 7. 공개 호스트 연결
 
-Cloudflare Dashboard에서 `Networking → Tunnels → homeServer-tunnel → Routes → Add route → Published application`을 선택합니다.
+Cloudflare Dashboard에서 `Networking → Tunnels → homeServer-tunnel → Routes → Add route → Published application`을 선택합니다. 현재 `intro.woonapp.com` 경로를 생성했고, Cloudflare가 Tunnel 대상 CNAME DNS 레코드를 자동으로 만들었습니다. Cloudflare Dashboard의 Tunnel과 Published Application 설정은 이 저장소가 관리하지 않습니다.
 
 | 항목 | 값 |
 | --- | --- |
