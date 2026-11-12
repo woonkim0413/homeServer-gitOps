@@ -5,23 +5,16 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  source:
-    repoURL: https://traefik.github.io/charts
-    chart: traefik
-    targetRevision: 42.3.1
-    helm:
-      values: |
-        ingressClass:
-          enabled: true
-          isDefaultClass: false
-          name: traefik
-        providers:
-          kubernetesIngress:
-            enabled: true
-            ingressClass: traefik
-        service:
-          spec:
-            type: ClusterIP
+  sources:
+    - repoURL: https://traefik.github.io/charts
+      chart: traefik
+      targetRevision: 42.3.1
+      helm:
+        valueFiles:
+          - $values/infrastructure/traefik/values.yaml
+    - repoURL: https://github.com/woonkim0413/homeServer-gitops.git
+      targetRevision: main
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: traefik

@@ -1,6 +1,6 @@
 # homelab-gitops
 
-Argo CD로 자기소개 웹 앱과 Cloudflare Tunnel Connector를 배포하는 Kubernetes GitOps 저장소입니다.
+Argo CD로 자기소개 웹 앱, Traefik Ingress Controller, Cloudflare Tunnel Connector를 배포하는 Kubernetes GitOps 저장소입니다.
 
 ```text
 argocd/
@@ -11,9 +11,12 @@ apps/self-Intruduction/
 ├── deployment.yaml               # 웹 앱 Deployment
 ├── service.yaml                  # 내부 ClusterIP Service
 └── ingress.yaml                  # intro.woonapp.com → 웹 앱
-infrastructure/cloudflared/
-├── kustomization.yaml
-└── deployment.yaml               # 원격 관리 Tunnel Connector
+infrastructure/
+├── cloudflared/
+│   ├── kustomization.yaml
+│   └── deployment.yaml            # 원격 관리 Tunnel Connector
+└── traefik/
+    └── values.yaml                # Traefik Helm chart 설정
 ```
 
 ## 트래픽 흐름
@@ -34,7 +37,7 @@ infrastructure/cloudflared/
 
 ### 1. Argo CD 설치
 
-클러스터에는 현재 Argo CD가 없으므로 최초 1회 홈서버 터미널에서 설치합니다. 비고가용성(single replica) 공식 매니페스트를 버전 `v3.6.1`로 고정합니다.
+Argo CD는 홈서버 Kubernetes 클러스터에 설치되어 있습니다. 아래는 새 클러스터를 구성할 때 최초 1회 실행하는 설치 절차이며, 비고가용성(single replica) 공식 매니페스트를 버전 `v3.6.1`로 고정합니다.
 
 ```bash
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
@@ -49,9 +52,11 @@ Argo CD 서비스는 기본 ClusterIP로 유지합니다. 저장소가 비공개
 
 Cloudflare Dashboard의 `Networking → Tunnels`에 원격 관리 Tunnel `homeServer-tunnel`을 생성했습니다. Connector 두 개가 Kubernetes에서 실행 중이며 Cloudflare에 연결된 상태입니다. 토큰은 `cloudflare` 네임스페이스의 `cloudflared-token` Secret에만 저장하고 Git에는 넣지 않습니다. Docker 안내 명령은 로컬에서 실행하지 않습니다.
 
-### 3. Traefik 등록 및 실제 내부 주소 확인
+### 3. Traefik 등록/업데이트 및 실제 내부 주소 확인
 
-저장소 변경 사항을 `main`에 반영한 뒤 Traefik Application을 등록합니다. Argo CD가 공식 Helm chart `42.3.1`을 `traefik` 네임스페이스에 설치하고, Service를 `ClusterIP`로 유지합니다.
+Argo CD Application은 공식 Helm chart `42.3.1`을 사용하고, 설정값은 이 저장소의 `infrastructure/traefik/values.yaml`에서 읽습니다. chart 리소스 자체는 Helm chart에서 렌더링되며 이 저장소에는 chart 설정 override만 둡니다. Service는 `ClusterIP`로 유지합니다.
+
+기존 Traefik Application을 inline `helm.values`에서 Git의 values 파일을 읽는 multi-source 방식으로 바꾸려면, Git 변경을 `main`에 반영한 뒤 Application 정의를 한 번 적용합니다. 이 저장소에는 Application 정의를 자동 동기화하는 루트 Application이 없으므로 이 단계가 필요합니다. 그 다음부터 `values.yaml` 변경은 Argo CD가 감지해 동기화합니다.
 
 ```bash
 kubectl apply -f argocd/traefik.yaml
